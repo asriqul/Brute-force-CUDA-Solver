@@ -1,23 +1,49 @@
+# Makefile untuk GPU Permutation Bruteforce
+
 # Compiler
 NVCC = nvcc
 
-# Compiler flags
-# -O3 untuk optimasi maksimal
-# -std=c++11 karena kode menggunakan fitur C++11
-# -arch=sm_75 disesuaikan untuk arsitektur GPU (Turing/RTX 20-series). 
-# Gunakan sm_86 untuk Ampere (RTX 30-series) atau sm_61 untuk Pascal.
-NVCC_FLAGS = -O3 -std=c++11 -arch=sm_75
+# Target executable
+TARGET = gpu_permutation_main
 
-# Nama program hasil kompilasi
-TARGET = combined_main
-
-# File sumber
+# Source files
 SOURCES = combined_main.cu
+HEADERS = crypto_kernels.cuh
 
+# CUDA flags
+CUDA_FLAGS = -O3 -arch=sm_75 -std=c++14
+
+# Default target
 all: $(TARGET)
 
-$(TARGET): $(SOURCES) crypto_kernels.cuh
-	$(NVCC) $(NVCC_FLAGS) -o $(TARGET) $(SOURCES)
+# Compile CUDA code
+$(TARGET): $(SOURCES) $(HEADERS)
+	@echo "🔨 Compiling GPU permutation bruteforce..."
+	$(NVCC) $(CUDA_FLAGS) $(SOURCES) -o $(TARGET)
+	@echo "✅ Build complete: ./$(TARGET)"
+	@echo ""
+	@echo "📝 Usage: python3 main.py"
 
+# Clean build artifacts
 clean:
 	rm -f $(TARGET) temp_batch.txt
+	@echo "🧹 Cleaned build artifacts"
+
+# Run the program
+run:
+	python main.py
+
+# Info tentang GPU
+gpu-info:
+	nvidia-smi
+
+# Help
+help:
+	@echo "Available targets:"
+	@echo "  make          - Compile the GPU bruteforce program"
+	@echo "  make run      - Run the Python launcher"
+	@echo "  make clean    - Remove build artifacts"
+	@echo "  make gpu-info - Show GPU information"
+	@echo "  make help     - Show this help message"
+
+.PHONY: all clean run gpu-info help
