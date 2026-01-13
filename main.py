@@ -1,57 +1,68 @@
-import itertools
+#!/usr/bin/env python3
 import subprocess
-import os
 import base58
+import sys
 
-def run_cuda_batch(batch, target_hex):
-    # Simpan batch ke file sementara
-    with open("temp_batch.txt", "w") as f:
-        f.write("\n".join(batch))
+def start_gpu_bruteforce():
+    """
+    Python hanya mengirim 12 kata asli + target address ke GPU SEKALI SAJA.
+    GPU akan melakukan SEMUA permutasi di dalam kernel.
+    """
     
-    # Jalankan binary CUDA dengan argumen target_hex
-    try:
-        result = subprocess.run(["./combined_main", target_hex], capture_output=True, text=True)
-        
-        if "MATCH FOUND" in result.stdout:
-            print("\n" + result.stdout)
-            return True
-    except Exception as e:
-        print(f"Error running binary: {e}")
-        
-    return False
-
-def start_bruteforce():
     # 1. Konfigurasi Target
-    target_address = "INSERT TARGET SOLANA ADDRESS HERE" 
+    target_address = "HiNoo9DoRQQ5uyVE1obERxcf2f1pj9K4JNcNNJ11U6vs"  # Contoh address
+    
     try:
         target_public_key = base58.b58decode(target_address).hex()
-    except:
-        print("Alamat Solana tidak valid!")
+    except Exception as e:
+        print(f"❌ Alamat Solana tidak valid: {e}")
         return
-
-    # 2. Cek Binary
-    if not os.path.exists("./combined_main"):
-        print("[!] Binary './combined_main' tidak ditemukan. Build dulu dengan nvcc.")
-        return
-
-    # 3. Setup Kata-kata (Sesuaikan dengan kata yang Anda ingat)
-    words = ["insert your", "word", "list", "here", "to", "form", "mnemonic", "phrases"] 
-    perms = itertools.permutations(words)
     
-    print(f"Memulai pencarian untuk: {target_address}")
-    batch = []
-    count = 0
-    for p in perms:
-        batch.append(" ".join(p))
-        if len(batch) >= 20000: # Ukuran batch optimal untuk GPU
-            count += len(batch)
-            print(f"Checking {count} combinations...", end="\r")
-            if run_cuda_batch(batch, target_public_key): 
-                break
-            batch = []
-
-    if batch:
-        run_cuda_batch(batch, target_public_key)
+    # 2. Setup 12 Kata Asli (URUTAN TIDAK PENTING - GPU yang akan permutasi!)
+    words = [
+        "abandon", "ability", "able", "about", "above", "absent",
+        "absorb", "abstract", "absurd", "abuse", "access", "accident"
+    ]
+    
+    if len(words) != 12:
+        print(f"❌ Harus tepat 12 kata! Saat ini: {len(words)}")
+        return
+    
+    print("=" * 60)
+    print("🚀 GPU Permutation Bruteforce untuk Solana Wallet")
+    print("=" * 60)
+    print(f"Target Address: {target_address}")
+    print(f"Target Hex:     {target_public_key}")
+    print(f"\n12 Kata Original:")
+    for i, word in enumerate(words, 1):
+        print(f"  {i:2d}. {word}")
+    
+    # Hitung total permutasi
+    factorial_12 = 479001600
+    print(f"\n📊 Total Permutasi: {factorial_12:,}")
+    print(f"⏱️  Estimasi (RTX 3080, ~500K perm/s): {factorial_12 / 500000 / 60:.1f} menit")
+    
+    # 3. Jalankan binary CUDA
+    print("\n" + "=" * 60)
+    print("🔥 Mengirim data ke GPU dan memulai pencarian...")
+    print("=" * 60 + "\n")
+    
+    cmd = ["./gpu_permutation_main", target_public_key] + words
+    
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        # Tampilkan output
+        print(result.stdout)
+        
+        if result.returncode != 0:
+            print(f"\n❌ Error: {result.stderr}")
+        
+    except FileNotFoundError:
+        print("❌ Binary './gpu_permutation_main' tidak ditemukan!")
+        print("   Compile dulu dengan: make")
+    except Exception as e:
+        print(f"❌ Error menjalankan binary: {e}")
 
 if __name__ == "__main__":
-    start_bruteforce()
+    start_gpu_bruteforce()
